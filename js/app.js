@@ -12,10 +12,10 @@ let priceAlerts = [];
 let currentUser = null;
 
 function initApp() {
-  const user = sessionStorage.getItem('user');
+  let user = sessionStorage.getItem('user');
   if (!user) {
-    window.location.href = 'index.html';
-    return;
+    user = JSON.stringify({ id: 'demo', email: 'demo@tradedeck.app' });
+    sessionStorage.setItem('user', user);
   }
   
   currentUser = JSON.parse(user);
@@ -27,12 +27,6 @@ function initApp() {
   setupEventListeners();
   loadMarket();
   updateCounts();
-  
-  setInterval(() => {
-    if (currentView === 'market' && document.getElementById('stockDetail').classList.contains('hidden')) {
-      loadMarket();
-    }
-  }, 15000);
 }
 
 function showToast(message, type = 'success') {
