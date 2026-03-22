@@ -1,6 +1,8 @@
-const API_BASE = 'http://localhost:3002';
+const API_BASE = 'https://query1.finance.yahoo.com/v8/finance';
 
-const FREE_LIMITS = { watchlist: 5, trades: 50 };
+const POPULAR_STOCKS = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA', 'META', 'AMD', 'NFLX', 'DIS', 'BTC-USD', 'ETH-USD', 'SPY', 'QQQ', 'DIA', 'IWM', 'GLD', 'SLV', 'USO', 'XLE'];
+
+const FREE_LIMITS = { watchlist: 3, trades: 30 };
 const PRO_PRICE = 4.98;
 
 let currentView = 'market';
@@ -267,35 +269,29 @@ async function loadMarket(filter = 'all') {
   grid.innerHTML = '<div class="loading-spinner">Loading stocks...</div>';
   
   try {
-    const res = await fetch(`${API_BASE}/api/popular`);
-    let stocks = await res.json();
+    const symbols = POPULAR_STOCKS.join(',');
+    const res = await fetch(`https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbols}`);
+    const data = await res.json();
+    let stocks = data.quoteResponse?.result || [];
     
     if (filter !== 'all') {
-      const sectorMap = { tech: 'Technology', crypto: 'Crypto', etf: 'ETF', commodities: 'Commodities', finance: 'Finance' };
-      stocks = stocks.filter(s => s.sector === sectorMap[filter]);
+      const sectorMap = { tech: 'Technology', crypto: 'Crypto', etf: 'ETF', commodities: 'Commodities' };
+      stocks = stocks.filter(s => sectorMap[filter] && (s.symbol.includes('BTC') || s.symbol.includes('ETH') ? filter === 'crypto' : s.sector === sectorMap[filter]));
     }
     
     grid.innerHTML = stocks.map(s => {
-      const changeClass = s.change >= 0 ? 'profit' : 'loss';
-      const prefix = s.change >= 0 ? '+' : '';
-      const isComingSoon = s.name?.includes('Coming Soon');
-      if (isComingSoon) {
-        return `<div class="stock-card coming-soon" data-symbol="${s.symbol}" data-coming="true"><div class="stock-card-symbol">${s.symbol}</div><div class="stock-card-name">${s.name}</div><span class="stock-card-price"></span><span class="stock-card-sector">${s.sector || ''}</span></div>`;
-      }
-      return `<div class="stock-card" data-symbol="${s.symbol}" data-coming="false"><div class="stock-card-symbol">${s.symbol}</div><div class="stock-card-name">${s.name || s.symbol}</div><span class="stock-card-price">$${s.price?.toFixed(2)}</span> <span class="stock-card-change ${changeClass}">${prefix}${s.change?.toFixed(2)} (${s.changePercent?.toFixed(2)}%)</span><span class="stock-card-sector">${s.sector || ''}</span></div>`;
+      const change = s.regularMarketChange || 0;
+      const changePercent = s.regularMarketChangePercent || 0;
+      const changeClass = change >= 0 ? 'profit' : 'loss';
+      const prefix = change >= 0 ? '+' : '';
+      return `<div class="stock-card" data-symbol="${s.symbol}"><div class="stock-card-symbol">${s.symbol}</div><div class="stock-card-name">${s.shortName || s.symbol}</div><span class="stock-card-price">$${s.regularMarketPrice?.toFixed(2)}</span> <span class="stock-card-change ${changeClass}">${prefix}${change?.toFixed(2)} (${changePercent?.toFixed(2)}%)</span><span class="stock-card-sector">${s.sector || ''}</span></div>`;
     }).join('');
     
     grid.querySelectorAll('.stock-card').forEach(card => {
-      card.addEventListener('click', () => {
-        if (card.dataset.coming === 'true') {
-          showToast('Coming soon!', 'error');
-        } else {
-          showStockDetail(card.dataset.symbol);
-        }
-      });
+      card.addEventListener('click', () => showStockDetail(card.dataset.symbol));
     });
   } catch (e) {
-    grid.innerHTML = '<div class="empty-state"><h3>Failed to load stocks</h3><p>Make sure backend is running</p></div>';
+    grid.innerHTML = '<div class="empty-state"><h3>Failed to load stocks</h3><p>Check your connection</p></div>';
   }
 }
 
@@ -308,43 +304,55 @@ async function showStockDetail(symbol, name = '') {
   
   const loadQuote = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/quote?symbol=${symbol}`);
-      const data = await res.json();
-      currentStock = { ...currentStock, ...data };
+      const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=5m&range=1d`);
+      const json = await res.json();
+      const data = json.chart?.result?.[0];
+      if (!data) return;
       
-      document.getElementById('detailSymbol').textContent = data.symbol;
-      document.getElementById('detailName').textContent = data.name || symbol;
-      document.getElementById('detailPrice').textContent = `$${data.price?.toFixed(2)}`;
-      document.getElementById('detailChange').textContent = `${data.change >= 0 ? '+' : ''}${data.change?.toFixed(2)} (${data.changePercent?.toFixed(2)}%)`;
-      document.getElementById('detailChange').className = `stock-change ${data.change >= 0 ? 'profit' : 'loss'}`;
-      document.getElementById('detailOpen').textContent = `$${data.open?.toFixed(2)}`;
-      document.getElementById('detailHigh').textContent = `$${data.dayHigh?.toFixed(2)}`;
-      document.getElementById('detailLow').textContent = `$${data.dayLow?.toFixed(2)}`;
-      document.getElementById('detailVolume').textContent = (data.volume || 0).toLocaleString();
+      const meta = data.meta;
+      const quote = data.indicators?.quote?.[0];
+      currentStock = { ...currentStock, ...meta, prices: quote };
+      
+      document.getElementById('detailSymbol').textContent = symbol;
+      document.getElementById('detailName').textContent = meta.shortName || symbol;
+      document.getElementById('detailPrice').textContent = `$${meta.regularMarketPrice?.toFixed(2)}`;
+      const change = meta.regularMarketChange || 0;
+      const changePercent = meta.regularMarketChangePercent || 0;
+      document.getElementById('detailChange').textContent = `${change >= 0 ? '+' : ''}${change?.toFixed(2)} (${changePercent?.toFixed(2)}%)`;
+      document.getElementById('detailChange').className = `stock-change ${change >= 0 ? 'profit' : 'loss'}`;
+      document.getElementById('detailOpen').textContent = `$${meta.regularMarketOpen?.toFixed(2)}`;
+      document.getElementById('detailHigh').textContent = `$${meta.regularMarketDayHigh?.toFixed(2)}`;
+      document.getElementById('detailLow').textContent = `$${meta.regularMarketDayLow?.toFixed(2)}`;
+      document.getElementById('detailVolume').textContent = (meta.regularMarketVolume || 0).toLocaleString();
       document.getElementById('lastUpdated').textContent = `Updated ${new Date().toLocaleTimeString()}`;
-    } catch (e) {}
+    } catch (e) { console.error(e); }
   };
   
   await loadQuote();
+  await loadStockChart(symbol, '1d');
   
   priceRefreshInterval = setInterval(async () => {
-    if (currentView === 'market' && !document.getElementById('stocksGrid').classList.contains('hidden') === false) {
+    if (currentView === 'market') {
       await loadQuote();
-      await loadStockChart(symbol, '1d');
     }
-  }, 5000);
-  
-  await loadStockChart(symbol, '1d');
+  }, 15000);
 }
 
 async function loadStockChart(symbol, period = '1d') {
   try {
-    const res = await fetch(`${API_BASE}/api/chart?symbol=${symbol}&period=${period}`);
-    const data = await res.json();
-    if (!data || data.length === 0) return;
+    const rangeMap = { '1d': '1d', '1w': '5d', '1m': '1mo', '3m': '3mo', '1y': '1y' };
+    const range = rangeMap[period] || '1d';
+    const intervalMap = { '1d': '5m', '5d': '15m', '1mo': '1d', '3mo': '1d', '1y': '1wk' };
+    const interval = intervalMap[range] || '1d';
+    
+    const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${interval}&range=${range}`);
+    const json = await res.json();
+    const data = json.chart?.result?.[0]?.indicators?.quote?.[0];
+    if (!data || !data.close) return;
     
     const ctx = document.getElementById('stockChart').getContext('2d');
-    const isUp = data[data.length - 1]?.close >= data[0]?.close;
+    const prices = data.close.filter(p => p !== null);
+    const isUp = prices[prices.length - 1] >= prices[0];
     const lineColor = isUp ? '#10B981' : '#EF4444';
     const gradient = ctx.createLinearGradient(0, 0, 0, 300);
     gradient.addColorStop(0, isUp ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)');
@@ -368,13 +376,13 @@ async function loadStockChart(symbol, period = '1d') {
       stockChart = new Chart(ctx, {
         type: 'line',
         data: {
-          labels: labels.map((l, i) => i % step === 0 ? l : ''),
-          datasets: [{ data: data.map(d => d.close), borderColor: lineColor, backgroundColor: gradient, fill: true, tension: 0.4, pointRadius: 0, borderWidth: 2 }]
+          labels: prices.map((_, i) => i % Math.max(1, Math.floor(prices.length / 8)) === 0 ? i : ''),
+          datasets: [{ data: prices, borderColor: lineColor, backgroundColor: gradient, fill: true, tension: 0.4, pointRadius: 0, borderWidth: 2 }]
         },
         options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } }, scales: { x: { display: true, grid: { display: false }, ticks: { color: '#8B949E', font: { size: 10 }, maxRotation: 0 } }, y: { display: true, grid: { color: 'rgba(48, 54, 61, 0.5)' }, ticks: { color: '#8B949E', font: { size: 10 }, callback: (v) => `$${v.toFixed(0)}` } } } }
       });
     }
-  } catch (e) {}
+  } catch (e) { console.error('Chart error:', e); }
 }
 
 function addCurrentToWatchlist() {
@@ -398,31 +406,37 @@ async function loadWatchlist() {
   
   try {
     const symbols = watchlist.map(w => w.symbol).join(',');
-    const res = await fetch(`${API_BASE}/api/stocks?symbols=${symbols}`);
-    const stocks = await res.json();
+    const res = await fetch(`https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbols}`);
+    const json = await res.json();
+    const stocks = json.quoteResponse?.result || [];
     
     container.innerHTML = stocks.map(s => {
-      const changeClass = s.change >= 0 ? 'profit' : 'loss';
-      const prefix = s.change >= 0 ? '+' : '';
-      return `<div class="watchlist-card" data-symbol="${s.symbol}"><div class="watchlist-card-header"><div class="watchlist-symbol">${s.symbol}</div><button class="watchlist-remove" onclick="event.stopPropagation(); removeFromWatchlist('${s.symbol}')">×</button></div><div class="watchlist-price">$${s.price?.toFixed(2)}</div><div class="watchlist-change ${changeClass}">${prefix}${s.change?.toFixed(2)} (${s.changePercent?.toFixed(2)}%)</div><canvas id="mini-${s.symbol}" height="60"></canvas></div>`;
+      const change = s.regularMarketChange || 0;
+      const changePercent = s.regularMarketChangePercent || 0;
+      const changeClass = change >= 0 ? 'profit' : 'loss';
+      const prefix = change >= 0 ? '+' : '';
+      return `<div class="watchlist-card" data-symbol="${s.symbol}"><div class="watchlist-card-header"><div class="watchlist-symbol">${s.symbol}</div><button class="watchlist-remove" onclick="event.stopPropagation(); removeFromWatchlist('${s.symbol}')">×</button></div><div class="watchlist-price">$${s.regularMarketPrice?.toFixed(2)}</div><div class="watchlist-change ${changeClass}">${prefix}${change?.toFixed(2)} (${changePercent?.toFixed(2)}%)</div><canvas id="mini-${s.symbol}" height="60"></canvas></div>`;
     }).join('');
     
     container.querySelectorAll('.watchlist-card').forEach(card => {
       card.addEventListener('click', () => showStockDetail(card.dataset.symbol));
       loadMiniChart(card.dataset.symbol);
     });
-  } catch (e) {}
+  } catch (e) { console.error(e); }
 }
 
 async function loadMiniChart(symbol) {
   try {
-    const res = await fetch(`${API_BASE}/api/chart?symbol=${symbol}&period=1mo`);
-    const data = await res.json();
-    if (!data || data.length === 0) return;
+    const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1mo`);
+    const json = await res.json();
+    const data = json.chart?.result?.[0]?.indicators?.quote?.[0];
+    if (!data || !data.close) return;
+    const prices = data.close.filter(p => p !== null);
+    if (prices.length === 0) return;
     const ctx = document.getElementById(`mini-${symbol}`)?.getContext('2d');
     if (!ctx) return;
-    const isUp = data[data.length - 1]?.close >= data[0]?.close;
-    new Chart(ctx, { type: 'line', data: { labels: data.map(() => ''), datasets: [{ data: data.map(d => d.close), borderColor: isUp ? '#10B981' : '#EF4444', borderWidth: 1.5, fill: false, tension: 0.4, pointRadius: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } } } });
+    const isUp = prices[prices.length - 1] >= prices[0];
+    new Chart(ctx, { type: 'line', data: { labels: prices.map(() => ''), datasets: [{ data: prices, borderColor: isUp ? '#10B981' : '#EF4444', borderWidth: 1.5, fill: false, tension: 0.4, pointRadius: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } } } });
   } catch (e) {}
 }
 
