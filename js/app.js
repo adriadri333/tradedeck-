@@ -230,14 +230,37 @@ window.upgradeToPro = function() {
   document.getElementById('paymentModal').classList.remove('hidden');
 };
 
-window.processPayment = function() {
-  subscription.tier = 'pro';
-  subscription.status = 'active';
-  sessionStorage.setItem('subscription', JSON.stringify(subscription));
-  document.getElementById('paymentModal').classList.add('hidden');
-  updateSubscriptionUI();
-  showToast('Demo: Pro activated!');
+window.processPayment = async function() {
+  const user = JSON.parse(sessionStorage.getItem('user') || '{}');
+  
+  try {
+    const res = await fetch('/api/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: user.email, userId: user.id })
+    });
+    
+    const data = await res.json();
+    
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      throw new Error(data.error || 'Checkout failed');
+    }
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
 };
+
+document.addEventListener('DOMContentLoaded', () => {
+  const sub = JSON.parse(sessionStorage.getItem('subscription') || '{}');
+  if (sub.tier === 'pro') {
+    subscription = sub;
+    updateSubscriptionUI();
+  }
+  
+  document.getElementById('subscribeBtn')?.addEventListener('click', processPayment);
+});
 
 async function loadMarket(filter = 'all') {
   const grid = document.getElementById('stocksGrid');

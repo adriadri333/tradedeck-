@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Successful - TradeDeck</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0D1117;
+      color: #E6EDF3;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .container {
+      text-align: center;
+      padding: 40px;
+    }
+    .checkmark {
+      width: 80px;
+      height: 80px;
+      background: #10B981;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px;
+    }
+    .checkmark svg { width: 40px; height: 40px; stroke: white; stroke-width: 3; fill: none; }
+    h1 { font-size: 2rem; margin-bottom: 12px; color: #10B981; }
+    p { color: #8B949E; margin-bottom: 32px; }
+    .btn {
+      background: #10B981;
+      color: white;
+      border: none;
+      padding: 14px 32px;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .btn:hover { background: #059669; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="checkmark">
+      <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+    </div>
+    <h1>Payment Successful!</h1>
+    <p>Welcome to TradeDeck Pro. All premium features are now unlocked.</p>
+    <a href="/app.html" class="btn">Go to TradeDeck</a>
+  </div>
+  <script>
+    const subscription = { tier: 'pro', status: 'active' };
+    sessionStorage.setItem('subscription', JSON.stringify(subscription));
+  </script>
+</body>
+</html>
