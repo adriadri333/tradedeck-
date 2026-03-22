@@ -2,10 +2,7 @@
   "name": "tradedeck",
   "version": "1.0.0",
   "private": true,
-  "scripts": {
-    "dev": "python3 server.py",
-    "start": "python3 server.py"
-  },
+  "type": "module",
   "dependencies": {
     "stripe": "^14.0.0"
   }

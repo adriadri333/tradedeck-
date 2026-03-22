@@ -1,7 +1,8 @@
-const Stripe = require('stripe');
+import Stripe from 'stripe';
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -17,7 +18,7 @@ module.exports = async (req, res) => {
       payment_method_types: ['card'],
       line_items: [
         {
-          price: 'price_pro_monthly',
+          price: process.env.STRIPE_PRICE_ID,
           quantity: 1,
         },
       ],
@@ -35,4 +36,4 @@ module.exports = async (req, res) => {
     console.error('Stripe error:', error);
     res.status(500).json({ error: error.message });
   }
-};
+}
