@@ -24,22 +24,24 @@ module.exports = async (req, res) => {
         );
         const quote = await response.json();
         
-        const profileRes = await fetch(
-          `https://finnhub.io/api/v1/stock/profile2?symbol=${symbol}&token=${API_KEY}`
-        );
-        const profile = await profileRes.json().catch(() => ({}));
+        const nameMap = {
+          'AAPL': 'Apple Inc.', 'MSFT': 'Microsoft', 'GOOGL': 'Alphabet Inc.',
+          'AMZN': 'Amazon', 'NVDA': 'NVIDIA', 'TSLA': 'Tesla',
+          'META': 'Meta Platforms', 'AMD': 'AMD', 'NFLX': 'Netflix',
+          'DIS': 'Disney', 'SPY': 'S&P 500 ETF', 'QQQ': 'Nasdaq ETF',
+          'DIA': 'Dow Jones ETF', 'IWM': 'Russell 2000 ETF'
+        };
         
         results.push({
           symbol,
-          name: profile.name || symbol,
-          price: quote.c,
-          change: quote.d,
-          changePercent: quote.dp,
-          high: quote.h,
-          low: quote.l,
-          open: quote.o,
-          prevClose: quote.pc,
-          sector: profile.finnhubIndustry || ''
+          name: nameMap[symbol] || symbol,
+          price: quote.c || 0,
+          change: quote.d || 0,
+          changePercent: quote.dp || 0,
+          high: quote.h || 0,
+          low: quote.l || 0,
+          open: quote.o || 0,
+          prevClose: quote.pc || 0
         });
       } catch (e) {
         results.push({ symbol, error: e.message });

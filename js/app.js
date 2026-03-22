@@ -1,4 +1,4 @@
-const POPULAR_STOCKS = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA', 'META', 'AMD', 'NFLX', 'DIS', 'BTC-USD', 'ETH-USD', 'SPY', 'QQQ', 'DIA', 'IWM'];
+const POPULAR_STOCKS = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA', 'META', 'AMD', 'NFLX', 'DIS', 'SPY', 'QQQ', 'DIA', 'IWM'];
 
 const FREE_LIMITS = { watchlist: 3, trades: 30 };
 const PRO_PRICE = 4.98;
@@ -262,7 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('subscribeBtn')?.addEventListener('click', processPayment);
 });
 
-async function loadMarket(filter = 'all') {
+async function loadMarket() {
   const grid = document.getElementById('stocksGrid');
   grid.innerHTML = '<div class="loading-spinner">Loading stocks...</div>';
   
@@ -271,17 +271,12 @@ async function loadMarket(filter = 'all') {
     const res = await fetch(`/api/stocks?symbols=${symbols}`);
     const stocks = await res.json();
     
-    if (filter !== 'all') {
-      const sectorMap = { tech: 'Technology', crypto: 'Crypto', etf: 'ETF', commodities: 'Commodities' };
-      stocks = stocks.filter(s => sectorMap[filter] && (s.symbol.includes('BTC') || s.symbol.includes('ETH') ? filter === 'crypto' : s.sector === sectorMap[filter]));
-    }
-    
     grid.innerHTML = stocks.map(s => {
       const change = s.change || 0;
       const changePercent = s.changePercent || 0;
       const changeClass = change >= 0 ? 'profit' : 'loss';
       const prefix = change >= 0 ? '+' : '';
-      return `<div class="stock-card" data-symbol="${s.symbol}"><div class="stock-card-symbol">${s.symbol}</div><div class="stock-card-name">${s.name || s.symbol}</div><span class="stock-card-price">$${s.price?.toFixed(2)}</span> <span class="stock-card-change ${changeClass}">${prefix}${change?.toFixed(2)} (${changePercent?.toFixed(2)}%)</span><span class="stock-card-sector">${s.sector || ''}</span></div>`;
+      return `<div class="stock-card" data-symbol="${s.symbol}"><div class="stock-card-symbol">${s.symbol}</div><div class="stock-card-name">${s.name || s.symbol}</div><span class="stock-card-price">$${(s.price || 0).toFixed(2)}</span> <span class="stock-card-change ${changeClass}">${prefix}${change.toFixed(2)} (${changePercent.toFixed(2)}%)</span></div>`;
     }).join('');
     
     grid.querySelectorAll('.stock-card').forEach(card => {
@@ -310,14 +305,14 @@ async function showStockDetail(symbol, name = '') {
       
       document.getElementById('detailSymbol').textContent = symbol;
       document.getElementById('detailName').textContent = stock.name || symbol;
-      document.getElementById('detailPrice').textContent = `$${stock.price?.toFixed(2)}`;
+      document.getElementById('detailPrice').textContent = `$${(stock.price || 0).toFixed(2)}`;
       const change = stock.change || 0;
       const changePercent = stock.changePercent || 0;
-      document.getElementById('detailChange').textContent = `${change >= 0 ? '+' : ''}${change?.toFixed(2)} (${changePercent?.toFixed(2)}%)`;
+      document.getElementById('detailChange').textContent = `${change >= 0 ? '+' : ''}${change.toFixed(2)} (${changePercent.toFixed(2)}%)`;
       document.getElementById('detailChange').className = `stock-change ${change >= 0 ? 'profit' : 'loss'}`;
-      document.getElementById('detailOpen').textContent = `$${stock.open?.toFixed(2)}`;
-      document.getElementById('detailHigh').textContent = `$${stock.high?.toFixed(2)}`;
-      document.getElementById('detailLow').textContent = `$${stock.low?.toFixed(2)}`;
+      document.getElementById('detailOpen').textContent = `$${(stock.open || 0).toFixed(2)}`;
+      document.getElementById('detailHigh').textContent = `$${(stock.high || 0).toFixed(2)}`;
+      document.getElementById('detailLow').textContent = `$${(stock.low || 0).toFixed(2)}`;
       document.getElementById('detailVolume').textContent = '-';
       document.getElementById('lastUpdated').textContent = `Updated ${new Date().toLocaleTimeString()}`;
     } catch (e) { console.error(e); }
@@ -401,7 +396,7 @@ async function loadWatchlist() {
       const changePercent = s.changePercent || 0;
       const changeClass = change >= 0 ? 'profit' : 'loss';
       const prefix = change >= 0 ? '+' : '';
-      return `<div class="watchlist-card" data-symbol="${s.symbol}"><div class="watchlist-card-header"><div class="watchlist-symbol">${s.symbol}</div><button class="watchlist-remove" onclick="event.stopPropagation(); removeFromWatchlist('${s.symbol}')">×</button></div><div class="watchlist-price">$${s.price?.toFixed(2)}</div><div class="watchlist-change ${changeClass}">${prefix}${change?.toFixed(2)} (${changePercent?.toFixed(2)}%)</div><canvas id="mini-${s.symbol}" height="60"></canvas></div>`;
+      return `<div class="watchlist-card" data-symbol="${s.symbol}"><div class="watchlist-card-header"><div class="watchlist-symbol">${s.symbol}</div><button class="watchlist-remove" onclick="event.stopPropagation(); removeFromWatchlist('${s.symbol}')">×</button></div><div class="watchlist-price">$${(s.price || 0).toFixed(2)}</div><div class="watchlist-change ${changeClass}">${prefix}${change.toFixed(2)} (${changePercent.toFixed(2)}%)</div><canvas id="mini-${s.symbol}" height="60"></canvas></div>`;
     }).join('');
     
     container.querySelectorAll('.watchlist-card').forEach(card => {
