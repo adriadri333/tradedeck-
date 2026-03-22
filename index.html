@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TradeDeck – Trader Organizer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%230D1117' width='100' height='100' rx='20'/><path fill='%2310B981' d='M20 70 L35 45 L50 55 L65 30 L80 35 L80 50 L65 45 L50 70 Z'/></svg>">
+</head>
+<body class="auth-page">
+  <div class="auth-container">
+    <div class="auth-left">
+      <div class="auth-branding">
+        <div class="logo">
+          <svg class="logo-icon" viewBox="0 0 100 100" fill="none">
+            <rect fill="#161B22" width="100" height="100" rx="20"/>
+            <path fill="#10B981" d="M20 70 L35 45 L50 55 L65 30 L80 35 L80 50 L65 45 L50 70 Z"/>
+          </svg>
+          <span class="logo-text">TradeDeck</span>
+        </div>
+        <h1>Track your trades.<br>Improve your performance.</h1>
+        <p>The professional trading journal that helps you analyze trades, track P&L, and build better strategies.</p>
+      </div>
+    </div>
+    
+    <div class="auth-right">
+      <div class="auth-card">
+        <h2 style="margin-bottom: 24px; font-family: var(--font-heading);">Sign In</h2>
+        
+        <form id="loginForm">
+          <div class="form-group">
+            <label for="loginEmail">Email</label>
+            <input type="email" id="loginEmail" placeholder="trader@example.com" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="loginPassword">Password</label>
+            <input type="password" id="loginPassword" placeholder="Your password" required>
+          </div>
+          
+          <button type="submit" class="btn btn-primary btn-full" id="loginBtn">Sign In</button>
+        </form>
+        
+        <p style="text-align: center; margin-top: 24px; color: var(--text-secondary); font-size: 0.875rem;">
+          Don't have an account? <a href="#" id="showSignup" style="color: var(--accent);">Sign up</a>
+        </p>
+      </div>
+      
+      <div class="auth-card" id="signupCard" style="display: none;">
+        <h2 style="margin-bottom: 24px; font-family: var(--font-heading);">Create Account</h2>
+        
+        <form id="signupForm">
+          <div class="form-group">
+            <label for="signupEmail">Email</label>
+            <input type="email" id="signupEmail" placeholder="trader@example.com" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="signupPassword">Password</label>
+            <input type="password" id="signupPassword" placeholder="Min 6 characters" required minlength="6">
+          </div>
+          
+          <div class="form-group">
+            <label for="signupConfirm">Confirm Password</label>
+            <input type="password" id="signupConfirm" placeholder="Confirm password" required>
+          </div>
+          
+          <button type="submit" class="btn btn-primary btn-full" id="signupBtn">Create Account</button>
+        </form>
+        
+        <p style="text-align: center; margin-top: 24px; color: var(--text-secondary); font-size: 0.875rem;">
+          Already have an account? <a href="#" id="showLogin" style="color: var(--accent);">Sign in</a>
+        </p>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    const SUPABASE_URL = 'https://sgcdntxkuupafvamjqbb.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNnY2RudHhrdXVwYWZ2YW1qcWJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNDA4NDMsImV4cCI6MjA4OTcxNjg0M30.Y82vxaboThw7ES-Fp0_qYbPuukzCFl7csEDYccnf2_w';
+
+    const loginForm = document.getElementById('loginForm');
+    const signupForm = document.getElementById('signupForm');
+    const loginCard = document.querySelector('.auth-card');
+    const signupCard = document.getElementById('signupCard');
+
+    document.getElementById('showSignup').addEventListener('click', (e) => {
+      e.preventDefault();
+      loginCard.style.display = 'none';
+      signupCard.style.display = 'block';
+    });
+
+    document.getElementById('showLogin').addEventListener('click', (e) => {
+      e.preventDefault();
+      signupCard.style.display = 'none';
+      loginCard.style.display = 'block';
+    });
+
+    function showMessage(msg, isError) {
+      alert(msg);
+    }
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      const btn = document.getElementById('loginBtn');
+      
+      btn.disabled = true;
+      btn.textContent = 'Signing in...';
+      
+      try {
+        const res = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=password', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_ANON_KEY
+          },
+          body: JSON.stringify({ email, password })
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+          throw new Error(data.msg || data.message || 'Login failed');
+        }
+        
+        localStorage.setItem('sb_token', data.access_token);
+        sessionStorage.setItem('user', JSON.stringify({ id: data.user.id, email: data.user.email }));
+        window.location.href = 'app.html';
+      } catch (err) {
+        showMessage(err.message, true);
+        btn.disabled = false;
+        btn.textContent = 'Sign In';
+      }
+    });
+
+    signupForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('signupEmail').value.trim();
+      const password = document.getElementById('signupPassword').value;
+      const confirm = document.getElementById('signupConfirm').value;
+      const btn = document.getElementById('signupBtn');
+      
+      if (password.length < 6) {
+        showMessage('Password must be at least 6 characters', true);
+        return;
+      }
+      
+      if (password !== confirm) {
+        showMessage('Passwords do not match', true);
+        return;
+      }
+      
+      btn.disabled = true;
+      btn.textContent = 'Creating...';
+      
+      try {
+        const res = await fetch(SUPABASE_URL + '/auth/v1/signup', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_ANON_KEY
+          },
+          body: JSON.stringify({ email, password })
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+          throw new Error(data.msg || data.message || 'Signup failed');
+        }
+        
+        showMessage('Account created! Now sign in with your credentials.');
+        setTimeout(() => {
+          signupCard.style.display = 'none';
+          loginCard.style.display = 'block';
+          document.getElementById('signupForm').reset();
+          btn.disabled = false;
+          btn.textContent = 'Create Account';
+        }, 2000);
+      } catch (err) {
+        showMessage(err.message, true);
+        btn.disabled = false;
+        btn.textContent = 'Create Account';
+      }
+    });
+  </script>
+</body>
+</html>

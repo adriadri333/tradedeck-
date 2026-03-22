@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TradeDeck – Trader Organizer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%230D1117' width='100' height='100' rx='20'/><path fill='%2310B981' d='M20 70 L35 45 L50 55 L65 30 L80 35 L80 50 L65 45 L50 70 Z'/></svg>">
+</head>
+<body class="dashboard-page">
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <svg class="logo-icon" viewBox="0 0 100 100" fill="none">
+            <rect fill="#161B22" width="100" height="100" rx="20"/>
+            <path fill="#10B981" d="M20 70 L35 45 L50 55 L65 30 L80 35 L80 50 L65 45 L50 70 Z"/>
+          </svg>
+          <span class="logo-text">TradeDeck</span>
+        </div>
+      </div>
+      
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-view="market">
+          <i data-lucide="trending-up"></i>
+          <span>Market</span>
+        </button>
+        <button class="nav-item" data-view="trades">
+          <i data-lucide="bar-chart-3"></i>
+          <span>Trades</span>
+          <span class="nav-badge" id="tradeCount">0</span>
+        </button>
+        <button class="nav-item" data-view="watchlist">
+          <i data-lucide="star"></i>
+          <span>Watchlist</span>
+          <span class="nav-badge" id="watchlistCount">0</span>
+        </button>
+        <button class="nav-item" data-view="analytics" id="analyticsNav">
+          <i data-lucide="pie-chart"></i>
+          <span>Analytics</span>
+          <span class="pro-badge" style="font-size: 0.6rem; background: linear-gradient(135deg, #FFD700, #FFA500); color: #000; padding: 2px 4px; border-radius: 4px; margin-left: auto;">PRO</span>
+        </button>
+        <button class="nav-item" data-view="alerts" id="alertsNav">
+          <i data-lucide="bell"></i>
+          <span>Alerts</span>
+          <span class="nav-badge" id="alertCount" style="display: none;">0</span>
+          <span class="pro-badge" style="font-size: 0.6rem; background: linear-gradient(135deg, #FFD700, #FFA500); color: #000; padding: 2px 4px; border-radius: 4px; margin-left: auto;">PRO</span>
+        </button>
+        <button class="nav-item" data-view="calendar" id="calendarNav">
+          <i data-lucide="calendar"></i>
+          <span>Calendar</span>
+          <span class="pro-badge" style="font-size: 0.6rem; background: linear-gradient(135deg, #FFD700, #FFA500); color: #000; padding: 2px 4px; border-radius: 4px; margin-left: auto;">PRO</span>
+        </button>
+      </nav>
+      
+      <div class="sidebar-footer">
+        <div class="user-info" id="userInfo">
+          <div class="user-avatar" id="userAvatar">T</div>
+          <div class="user-details">
+            <span class="user-name" id="userName">Trader</span>
+            <span class="user-tier" id="userTier">Free Plan</span>
+          </div>
+        </div>
+        <button class="btn btn-logout" id="logoutBtn">
+          <i data-lucide="log-out"></i>
+          Sign Out
+        </button>
+      </div>
+    </aside>
+    
+    <main class="main-content">
+      <header class="top-bar">
+        <div class="top-bar-title">
+          <h1 id="pageTitle">Market</h1>
+        </div>
+        <div class="top-bar-actions">
+          <div class="search-stocks">
+            <i data-lucide="search"></i>
+            <input type="text" id="stockSearch" placeholder="Search stocks...">
+            <div class="search-results hidden" id="searchResults"></div>
+          </div>
+          <button class="btn btn-primary" id="addTradeBtn">
+            <i data-lucide="plus"></i>
+            Log Trade
+          </button>
+        </div>
+      </header>
+      
+      <div class="content-area">
+        <!-- Market View -->
+        <section id="marketView" class="view active">
+          <div class="market-header">
+            <h2>Popular Stocks</h2>
+            <div class="market-filters">
+              <button class="filter-btn active" data-filter="all">All</button>
+              <button class="filter-btn" data-filter="tech">Tech</button>
+              <button class="filter-btn" data-filter="crypto">Crypto</button>
+              <button class="filter-btn" data-filter="etf">ETF</button>
+              <button class="filter-btn" data-filter="commodities">Commodities</button>
+            </div>
+          </div>
+          
+          <div class="stocks-grid" id="stocksGrid">
+            <div class="loading-spinner"><i data-lucide="loader"></i> Loading stocks...</div>
+          </div>
+          
+          <div class="stock-detail hidden" id="stockDetail">
+            <div class="stock-detail-header">
+              <button class="btn btn-ghost" id="backToStocks">
+                <i data-lucide="arrow-left"></i> Back
+              </button>
+            </div>
+            <div class="stock-detail-content">
+              <div class="stock-info">
+                <div class="stock-info-header">
+                  <div>
+                    <h2 id="detailSymbol">AAPL</h2>
+                    <p id="detailName">Apple Inc.</p>
+                  </div>
+                  <div class="price-meta">
+                    <span class="live-dot"></span>
+                    <span id="lastUpdated" style="font-size: 0.75rem; color: var(--text-secondary);">Updating...</span>
+                  </div>
+                </div>
+                <div class="stock-price">
+                  <span id="detailPrice">$0.00</span>
+                  <span id="detailChange" class="stock-change">+0.00 (+0.00%)</span>
+                </div>
+              </div>
+              <div class="stock-chart-container">
+                <div class="chart-periods">
+                  <button class="period-btn active" data-period="1d">1D</button>
+                </div>
+                <canvas id="stockChart"></canvas>
+              </div>
+              <div class="stock-stats">
+                <div class="stat-item">
+                  <span class="stat-label">Open</span>
+                  <span class="stat-value" id="detailOpen">$0.00</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">High</span>
+                  <span class="stat-value" id="detailHigh">$0.00</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">Low</span>
+                  <span class="stat-value" id="detailLow">$0.00</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">Volume</span>
+                  <span class="stat-value" id="detailVolume">0</span>
+                </div>
+              </div>
+              <div class="stock-actions">
+                <button class="btn btn-primary" id="addToWatchlistBtn">
+                  <i data-lucide="star"></i>
+                  Add to Watchlist
+                </button>
+                <button class="btn btn-secondary" id="tradeFromDetailBtn">
+                  <i data-lucide="plus"></i>
+                  Log Trade
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+        
+        <!-- Trades View -->
+        <section id="tradesView" class="view">
+          <div class="view-toolbar">
+            <div class="filter-group">
+              <input type="text" id="tradeSearch" placeholder="Search symbol...">
+              <select id="tradeFilter">
+                <option value="all">All Trades</option>
+                <option value="winners">Winners</option>
+                <option value="losers">Losers</option>
+              </select>
+              <select id="strategyFilter">
+                <option value="all">All Strategies</option>
+              </select>
+            </div>
+            <div class="toolbar-actions">
+              <button class="btn btn-secondary" id="exportTradesBtn">
+                <i data-lucide="download"></i>
+                Export CSV
+              </button>
+            </div>
+          </div>
+          
+          <div class="trades-table-container">
+            <table class="trades-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Symbol</th>
+                  <th>Entry</th>
+                  <th>Exit</th>
+                  <th>Size</th>
+                  <th>P&L</th>
+                  <th>Strategy</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="tradesTableBody">
+              </tbody>
+            </table>
+          </div>
+          
+          <div class="empty-state hidden" id="tradesEmpty">
+            <i data-lucide="bar-chart-3"></i>
+            <h3>No trades recorded</h3>
+            <p>Start logging your trades to track performance.</p>
+            <button class="btn btn-primary" id="emptyAddTrade">
+              <i data-lucide="plus"></i>
+              Log Your First Trade
+            </button>
+          </div>
+        </section>
+        
+        <!-- Watchlist View -->
+        <section id="watchlistView" class="view">
+          <div class="watchlist-header">
+            <h2>Your Watchlist</h2>
+            <div class="live-badge"><i data-lucide="radio"></i> Live Prices</div>
+          </div>
+          <div class="watchlist-prices" id="watchlistPrices">
+            <div class="empty-state" id="watchlistEmpty">
+              <i data-lucide="star"></i>
+              <h3>Watchlist is empty</h3>
+              <p>Add stocks from the Market tab to track them here.</p>
+            </div>
+          </div>
+        </section>
+        
+        <!-- Calendar View (Pro only) -->
+        <section id="calendarView" class="view">
+          <div class="calendar-header">
+            <div>
+              <h2>Trading Calendar</h2>
+              <p style="color: var(--text-secondary); font-size: 0.875rem;">Your trading activity by day</p>
+            </div>
+            <div class="calendar-nav">
+              <button class="btn btn-secondary" id="prevMonth">←</button>
+              <span id="currentMonth" style="font-weight: 600; min-width: 150px; text-align: center;"></span>
+              <button class="btn btn-secondary" id="nextMonth">→</button>
+            </div>
+          </div>
+          <div class="calendar-grid" id="calendarGrid">
+            <div class="calendar-day-header">Sun</div>
+            <div class="calendar-day-header">Mon</div>
+            <div class="calendar-day-header">Tue</div>
+            <div class="calendar-day-header">Wed</div>
+            <div class="calendar-day-header">Thu</div>
+            <div class="calendar-day-header">Fri</div>
+            <div class="calendar-day-header">Sat</div>
+          </div>
+          <div class="calendar-stats" id="calendarStats"></div>
+        </section>
+        
+        <!-- Analytics View -->
+        <section id="analyticsView" class="view">
+          <div class="analytics-grid">
+            <div class="analytics-card full-width">
+              <h3>Performance Overview</h3>
+              <div class="analytics-stats" id="analyticsSummary">
+                <div class="analytics-stat">
+                  <span class="label">Total P&L</span>
+                  <span class="value" id="analyticsTotal">$0</span>
+                </div>
+                <div class="analytics-stat">
+                  <span class="label">Win Rate</span>
+                  <span class="value" id="analyticsWinRate">0%</span>
+                </div>
+                <div class="analytics-stat">
+                  <span class="label">Total Trades</span>
+                  <span class="value" id="analyticsTotalTrades">0</span>
+                </div>
+                <div class="analytics-stat">
+                  <span class="label">Avg Winner</span>
+                  <span class="value profit" id="analyticsAvgWin">$0</span>
+                </div>
+                <div class="analytics-stat">
+                  <span class="label">Avg Loser</span>
+                  <span class="value loss" id="analyticsAvgLoss">$0</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="analytics-card">
+              <h3>P&L by Strategy</h3>
+              <div class="strategy-breakdown" id="strategyBreakdown">
+                <p class="no-data">Log trades with strategies to see breakdown</p>
+              </div>
+            </div>
+            
+            <div class="analytics-card">
+              <h3>P&L by Symbol</h3>
+              <div class="symbol-breakdown" id="symbolBreakdown">
+                <p class="no-data">Log trades to see top symbols</p>
+              </div>
+            </div>
+          </div>
+        </section>
+        
+        <!-- Alerts View (Pro only) -->
+        <section id="alertsView" class="view">
+          <div class="alerts-header">
+            <div>
+              <h2>Price Alerts</h2>
+              <p style="color: var(--text-secondary); font-size: 0.875rem;">Get notified when stocks hit your target prices</p>
+            </div>
+            <button class="btn btn-primary" id="createAlertBtn">
+              <i data-lucide="plus"></i>
+              Create Alert
+            </button>
+          </div>
+          <div class="alerts-list" id="alertsList">
+            <div class="empty-state" id="alertsEmpty">
+              <i data-lucide="bell-off"></i>
+              <h3>No alerts set</h3>
+              <p>Create price alerts to get notified when stocks hit your target prices.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+    
+    <nav class="mobile-nav">
+      <button class="mobile-nav-item active" data-view="market">
+        <i data-lucide="trending-up"></i>
+        <span>Market</span>
+      </button>
+      <button class="mobile-nav-item" data-view="trades">
+        <i data-lucide="bar-chart-3"></i>
+        <span>Trades</span>
+      </button>
+      <button class="mobile-nav-item" data-view="watchlist">
+        <i data-lucide="star"></i>
+        <span>Watchlist</span>
+      </button>
+      <button class="mobile-nav-item" data-view="analytics">
+        <i data-lucide="pie-chart"></i>
+        <span>Analytics</span>
+      </button>
+    </nav>
+  </div>
+  
+  <!-- Trade Modal -->
+  <div class="modal-overlay hidden" id="tradeModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="tradeModalTitle">Log Trade</h3>
+        <button class="modal-close" id="closeTradeModal">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <form id="tradeForm" class="modal-body">
+        <input type="hidden" id="tradeId">
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="tradeSymbol">Symbol *</label>
+            <input type="text" id="tradeSymbol" placeholder="AAPL" required>
+          </div>
+          <div class="form-group">
+            <label for="tradeStrategy">Strategy</label>
+            <select id="tradeStrategy">
+              <option value="">Select strategy</option>
+              <option value="scalping">Scalping</option>
+              <option value="day-trade">Day Trade</option>
+              <option value="swing">Swing Trade</option>
+              <option value="position">Position Trade</option>
+              <option value="value">Value Investment</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="tradeEntry">Entry Price *</label>
+            <input type="number" id="tradeEntry" step="0.01" min="0" placeholder="0.00" required>
+          </div>
+          <div class="form-group">
+            <label for="tradeExit">Exit Price *</label>
+            <input type="number" id="tradeExit" step="0.01" min="0" placeholder="0.00" required>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="tradeSize">Position Size *</label>
+            <input type="number" id="tradeSize" step="1" min="1" placeholder="100" required>
+          </div>
+          <div class="form-group">
+            <label for="tradeDate">Date</label>
+            <input type="date" id="tradeDate">
+          </div>
+        </div>
+        
+        <div class="pnl-preview" id="pnlPreview">
+          <div class="pnl-item">
+            <span class="label">P&L</span>
+            <span class="value" id="pnlValue">$0.00</span>
+          </div>
+          <div class="pnl-item">
+            <span class="label">Return</span>
+            <span class="value" id="pnlPercent">0.00%</span>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="tradeNotes">Notes</label>
+          <textarea id="tradeNotes" rows="2" placeholder="Trade notes..."></textarea>
+        </div>
+        
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="cancelTrade">Cancel</button>
+          <button type="submit" class="btn btn-primary">
+            <span class="btn-text">Save Trade</span>
+            <span class="btn-loader"></span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <!-- Alert Modal -->
+  <div class="modal-overlay hidden" id="alertModal">
+    <div class="modal" style="max-width: 400px;">
+      <div class="modal-header">
+        <h3>Create Price Alert</h3>
+        <button class="modal-close" id="closeAlertModal">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <form id="alertForm" class="modal-body">
+        <div class="form-group">
+          <label for="alertSymbol">Stock Symbol *</label>
+          <input type="text" id="alertSymbol" placeholder="AAPL" required style="text-transform: uppercase;">
+        </div>
+        
+        <div class="form-group">
+          <label for="alertType">Alert Type</label>
+          <select id="alertType">
+            <option value="above">Price goes above</option>
+            <option value="below">Price goes below</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="alertPrice">Target Price *</label>
+          <input type="number" id="alertPrice" step="0.01" min="0" placeholder="150.00" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="alertNote">Note (optional)</label>
+          <input type="text" id="alertNote" placeholder="e.g., Earnings target">
+        </div>
+        
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="cancelAlert">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create Alert</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <!-- Stripe Payment Modal -->
+  <div class="modal-overlay hidden" id="paymentModal">
+    <div class="modal" style="max-width: 450px;">
+      <div class="modal-header">
+        <h3>Upgrade to Pro</h3>
+        <button class="modal-close" id="closePaymentModal">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="modal-body" style="text-align: center;">
+        <div style="color: #FFD700; margin-bottom: 16px;">
+          <i data-lucide="crown" style="width: 64px; height: 64px;"></i>
+        </div>
+        <h4 style="margin-bottom: 8px;">TradeDeck Pro</h4>
+        <p style="color: var(--text-secondary); margin-bottom: 20px;">Unlock all premium features</p>
+        
+        <div style="background: var(--bg-tertiary); border-radius: 12px; padding: 20px; margin-bottom: 20px; text-align: left;">
+          <ul style="list-style: none; padding: 0; margin: 0;">
+            <li style="padding: 10px 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px;">
+              <i data-lucide="check-circle" style="color: var(--profit); width: 20px;"></i> <strong>Unlimited Trades</strong>
+            </li>
+            <li style="padding: 10px 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px;">
+              <i data-lucide="check-circle" style="color: var(--profit); width: 20px;"></i> <strong>Unlimited Watchlist</strong>
+            </li>
+            <li style="padding: 10px 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px;">
+              <i data-lucide="check-circle" style="color: var(--profit); width: 20px;"></i> <strong>Advanced Analytics</strong>
+            </li>
+            <li style="padding: 10px 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px;">
+              <i data-lucide="check-circle" style="color: var(--profit); width: 20px;"></i> <strong>P&L Trading Calendar</strong>
+            </li>
+            <li style="padding: 10px 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px;">
+              <i data-lucide="check-circle" style="color: var(--profit); width: 20px;"></i> <strong>Custom Price Alerts</strong>
+            </li>
+            <li style="padding: 10px 0; display: flex; align-items: center; gap: 10px;">
+              <i data-lucide="check-circle" style="color: var(--profit); width: 20px;"></i> <strong>PDF Export</strong>
+            </li>
+          </ul>
+        </div>
+        
+        <div style="margin-bottom: 20px;">
+          <span style="font-size: 2.5rem; font-weight: 700;">$4.98</span>
+          <span style="color: var(--text-secondary);">/month</span>
+        </div>
+        
+        <div id="stripePaymentSection">
+          <div style="background: var(--bg-tertiary); padding: 16px; border-radius: 8px; margin-bottom: 16px; border: 1px solid var(--border);">
+            <p style="color: var(--text-secondary); font-size: 0.875rem;">Demo mode - Click subscribe to simulate payment</p>
+          </div>
+          <button class="btn btn-primary btn-full" id="subscribeBtn" onclick="processPayment()">
+            <i data-lucide="zap"></i> Upgrade Now
+          </button>
+          <p style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 12px;">
+            <i data-lucide="shield" style="width: 12px; display: inline;"></i> Secured by Stripe
+          </p>
+        </div>
+        
+        <div id="paymentSuccess" style="display: none;">
+          <i data-lucide="check-circle" style="width: 64px; height: 64px; color: var(--profit);"></i>
+          <h4 style="margin-top: 16px;">Payment Successful!</h4>
+          <p style="color: var(--text-secondary);">Welcome to Pro!</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="toast-container" id="toastContainer"></div>
+  
+  <script type="module">
+    import { supabase } from './js/supabase.js';
+    window.supabase = supabase;
+  </script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
