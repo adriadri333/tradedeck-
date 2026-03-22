@@ -1,7 +1,11 @@
 {
-  "rewrites": [
-    { "source": "/api/stocks", "destination": "/api/stocks.js" },
-    { "source": "/api/chart", "destination": "/api/chart.js" },
-    { "source": "/api/checkout", "destination": "/api/checkout.js" }
+  "builds": [
+    { "src": "/api/*.js", "use": "@vercel/node" }
+  ],
+  "routes": [
+    { "src": "/api/stocks", "dest": "/api/stocks.js" },
+    { "src": "/api/chart", "dest": "/api/chart.js" },
+    { "src": "/api/checkout", "dest": "/api/checkout.js" },
+    { "src": "/(.*)", "dest": "/$1" }
   ]
 }
