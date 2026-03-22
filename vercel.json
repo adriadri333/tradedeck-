@@ -1,14 +1,6 @@
 {
-  "builds": [
-    { "src": "api/*.js", "use": "@vercel/node" },
-    { "src": "**/*.html", "use": "@vercel/static" },
-    { "src": "css/*.css", "use": "@vercel/static" },
-    { "src": "js/*.js", "use": "@vercel/static" },
-    { "src": "*.html", "use": "@vercel/static" }
-  ],
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/$1" },
-    { "src": "/success.html", "dest": "/success.html" },
-    { "src": "/(.*)", "dest": "/$1", "headers": { "Cache-Control": "public, max-age=0, must-revalidate" } }
+    { "src": "/(.*)", "dest": "/$1" }
   ]
 }
