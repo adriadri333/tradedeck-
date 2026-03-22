@@ -1,4 +1,4 @@
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   const { symbol, interval = '5m', range = '1d' } = req.query;
   
   if (!symbol) {
@@ -19,4 +19,4 @@ export default async function handler(req, res) {
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch chart' });
   }
-}
+};

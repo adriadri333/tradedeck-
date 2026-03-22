@@ -1,4 +1,4 @@
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   const { symbols } = req.query;
   
   if (!symbols) {
@@ -19,4 +19,4 @@ export default async function handler(req, res) {
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch stocks' });
   }
-}
+};

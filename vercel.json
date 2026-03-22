@@ -1,6 +1,4 @@
 {
-  "buildCommand": null,
-  "outputDirectory": null,
   "rewrites": [
     { "source": "/api/stocks", "destination": "/api/stocks.js" },
     { "source": "/api/chart", "destination": "/api/chart.js" },
