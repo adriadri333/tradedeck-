@@ -1,6 +1,4 @@
-const API_BASE = 'https://query1.finance.yahoo.com/v8/finance';
-
-const POPULAR_STOCKS = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA', 'META', 'AMD', 'NFLX', 'DIS', 'BTC-USD', 'ETH-USD', 'SPY', 'QQQ', 'DIA', 'IWM', 'GLD', 'SLV', 'USO', 'XLE'];
+const POPULAR_STOCKS = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA', 'META', 'AMD', 'NFLX', 'DIS', 'BTC-USD', 'ETH-USD', 'SPY', 'QQQ', 'DIA', 'IWM'];
 
 const FREE_LIMITS = { watchlist: 3, trades: 30 };
 const PRO_PRICE = 4.98;
@@ -270,9 +268,8 @@ async function loadMarket(filter = 'all') {
   
   try {
     const symbols = POPULAR_STOCKS.join(',');
-    const res = await fetch(`https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbols}`);
-    const data = await res.json();
-    let stocks = data.quoteResponse?.result || [];
+    const res = await fetch(`/api/stocks?symbols=${symbols}`);
+    const stocks = await res.json();
     
     if (filter !== 'all') {
       const sectorMap = { tech: 'Technology', crypto: 'Crypto', etf: 'ETF', commodities: 'Commodities' };
@@ -304,7 +301,7 @@ async function showStockDetail(symbol, name = '') {
   
   const loadQuote = async () => {
     try {
-      const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=5m&range=1d`);
+      const res = await fetch(`/api/chart?symbol=${symbol}&interval=5m&range=1d`);
       const json = await res.json();
       const data = json.chart?.result?.[0];
       if (!data) return;
@@ -345,7 +342,7 @@ async function loadStockChart(symbol, period = '1d') {
     const intervalMap = { '1d': '5m', '5d': '15m', '1mo': '1d', '3mo': '1d', '1y': '1wk' };
     const interval = intervalMap[range] || '1d';
     
-    const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${interval}&range=${range}`);
+    const res = await fetch(`/api/chart?symbol=${symbol}&interval=${interval}&range=${range}`);
     const json = await res.json();
     const data = json.chart?.result?.[0]?.indicators?.quote?.[0];
     if (!data || !data.close) return;
@@ -406,9 +403,8 @@ async function loadWatchlist() {
   
   try {
     const symbols = watchlist.map(w => w.symbol).join(',');
-    const res = await fetch(`https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbols}`);
-    const json = await res.json();
-    const stocks = json.quoteResponse?.result || [];
+    const res = await fetch(`/api/stocks?symbols=${symbols}`);
+    const stocks = await res.json();
     
     container.innerHTML = stocks.map(s => {
       const change = s.regularMarketChange || 0;
@@ -427,7 +423,7 @@ async function loadWatchlist() {
 
 async function loadMiniChart(symbol) {
   try {
-    const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1mo`);
+    const res = await fetch(`/api/chart?symbol=${symbol}&interval=1d&range=1mo`);
     const json = await res.json();
     const data = json.chart?.result?.[0]?.indicators?.quote?.[0];
     if (!data || !data.close) return;
