@@ -313,50 +313,38 @@ async function showStockDetail(symbol, name = '') {
   };
   
   await loadQuote();
-  await loadStockChart(symbol, '1m');
-  
-  priceRefreshInterval = setInterval(async () => {
-    if (currentView === 'market') {
-      await loadQuote();
-    }
-  }, 60000);
+  await loadStockChart(symbol);
 }
 
-async function loadStockChart(symbol, period = '1m') {
+async function loadStockChart(symbol) {
   try {
-    const res = await fetch(`/api/chart?symbol=${symbol}&resolution=D`);
+    const res = await fetch(`/api/chart?symbol=${symbol}`);
     const candles = await res.json();
-    if (!candles || candles.length === 0) return;
+    if (!candles || candles.length === 0) {
+      document.getElementById('stockChart').style.display = 'none';
+      return;
+    }
     
+    document.getElementById('stockChart').style.display = 'block';
     const ctx = document.getElementById('stockChart').getContext('2d');
     const prices = candles.map(c => c.close).filter(p => p !== null);
+    if (prices.length === 0) return;
+    
     const isUp = prices[prices.length - 1] >= prices[0];
     const lineColor = isUp ? '#10B981' : '#EF4444';
-    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-    gradient.addColorStop(0, isUp ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)');
-    gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-    
-    const labels = candles.map(c => {
-      const date = new Date(c.time * 1000);
-      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-    });
-    const step = Math.max(1, Math.floor(labels.length / 6));
     
     if (stockChart) {
-      stockChart.data.labels = labels.map((l, i) => i % step === 0 ? l : '');
-      stockChart.data.datasets[0].data = prices;
-      stockChart.data.datasets[0].borderColor = lineColor;
-      stockChart.data.datasets[0].backgroundColor = gradient;
-      stockChart.update('none');
-    } else {
-      stockChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: prices.map((_, i) => i % Math.max(1, Math.floor(prices.length / 8)) === 0 ? i : ''),
-          datasets: [{ data: prices, borderColor: lineColor, backgroundColor: gradient, fill: true, tension: 0.4, pointRadius: 0, borderWidth: 2 }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } }, scales: { x: { display: true, grid: { display: false }, ticks: { color: '#8B949E', font: { size: 10 }, maxRotation: 0 } }, y: { display: true, grid: { color: 'rgba(48, 54, 61, 0.5)' }, ticks: { color: '#8B949E', font: { size: 10 }, callback: (v) => `$${v.toFixed(0)}` } } } }
-      });
+      stockChart.destroy();
+    }
+    
+    stockChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: candles.map(() => ''),
+        datasets: [{ data: prices, borderColor: lineColor, borderWidth: 2, fill: false, tension: 0.4, pointRadius: 0 }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: true, grid: { color: 'rgba(48, 54, 61, 0.5)' }, ticks: { color: '#8B949E' } } } }
+    });
     }
   } catch (e) { console.error('Chart error:', e); }
 }
